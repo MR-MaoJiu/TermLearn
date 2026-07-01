@@ -61,6 +61,7 @@ const TASK_SYSTEM_PROMPTS: Record<AiRequest['task'], string> = {
     '基于课程画像和可选考纲/课程名称生成一节可学习内容，输出 JSON，不要输出 Markdown。',
     'JSON 结构必须包含 title, objective, explanation, examples, exercises。',
     '必须输出严格 JSON：字符串内换行必须写成 \\n，字符串内部如需英文双引号必须用反斜杠转义。',
+    '如果 payload.userLessonRequest 不为空，它代表用户对课程主题、范围、深度、讲解方式、示例类型或练习形式的自然语言要求，必须优先满足。',
     'exercises 每项包含 prompt, referenceAnswer, rubric。'
   ].join('\n'),
   generateQuiz: [

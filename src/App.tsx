@@ -207,6 +207,7 @@ export default function App() {
       'course use ',
       'course create ',
       'lesson start',
+      'lesson start ',
       'quiz start',
       'quiz start ',
       'exam generate',

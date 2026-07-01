@@ -83,13 +83,14 @@ export async function runCommand(input: string, context: CommandContext) {
   }
 
   if (root === 'lesson' && sub === 'start') {
-    await generateLesson(rest[0], context);
+    const { courseId, userRequest } = parseCourseScopedArgs(rest, context);
+    await generateLesson(courseId, userRequest, context);
     return;
   }
 
   if (root === 'quiz' && sub === 'start') {
-    const { courseId, userQuizRequest } = parseQuizArgs(rest, context);
-    await generateQuiz(courseId, userQuizRequest, context);
+    const { courseId, userRequest } = parseCourseScopedArgs(rest, context);
+    await generateQuiz(courseId, userRequest, context);
     return;
   }
 
@@ -289,7 +290,7 @@ async function generateCourse(syllabusId: string | undefined, context: CommandCo
   context.append('output', formatCourse(course, context.data.layout.language));
 }
 
-async function generateLesson(courseId: string | undefined, context: CommandContext) {
+async function generateLesson(courseId: string | undefined, userLessonRequest: string, context: CommandContext) {
   const text = getMessages(context.data.layout.language);
   const course = findCourse(courseId, context);
   if (!course) {
@@ -303,7 +304,8 @@ async function generateLesson(courseId: string | undefined, context: CommandCont
       payload: {
         language: context.data.layout.language,
         course,
-        syllabus: context.data.syllabi.find((item) => item.id === course.syllabusId)?.rawText
+        syllabus: context.data.syllabi.find((item) => item.id === course.syllabusId)?.rawText,
+        userLessonRequest
       }
     },
     text.generatingLesson(course.title),
@@ -859,12 +861,12 @@ function findSyllabusSource(sourceId: string | undefined, context: CommandContex
     ?? context.data.syllabi[0];
 }
 
-function parseQuizArgs(args: string[], context: CommandContext) {
+function parseCourseScopedArgs(args: string[], context: CommandContext) {
   const first = args[0];
   if (!first) {
     return {
       courseId: undefined,
-      userQuizRequest: ''
+      userRequest: ''
     };
   }
 
@@ -872,20 +874,20 @@ function parseQuizArgs(args: string[], context: CommandContext) {
   if (isKnownCourseId) {
     return {
       courseId: first,
-      userQuizRequest: args.slice(1).join(' ').trim()
+      userRequest: args.slice(1).join(' ').trim()
     };
   }
 
   if (first.startsWith('course_')) {
     return {
       courseId: first,
-      userQuizRequest: args.slice(1).join(' ').trim()
+      userRequest: args.slice(1).join(' ').trim()
     };
   }
 
   return {
     courseId: undefined,
-    userQuizRequest: args.join(' ').trim()
+    userRequest: args.join(' ').trim()
   };
 }
 

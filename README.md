@@ -81,9 +81,11 @@ course enter <courseId>
 
 ```bash
 lesson start
+lesson start 长难句分析 入门讲解 多给例句
+lesson start 生成一节矩阵初等变换课程
 ```
 
-生成当前课程的一节学习内容。
+生成当前课程的一节学习内容。`lesson start` 后可以追加自然语言要求，让 AI 按指定主题、范围、深度、讲解方式、示例类型或练习形式生成课程。
 
 ```bash
 quiz start
