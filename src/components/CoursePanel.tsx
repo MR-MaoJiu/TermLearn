@@ -34,7 +34,7 @@ export function CoursePanel({ data, activeCourseId, onImport, onRunCommand }: Co
                 </button>
                 <div className="course-meta">{text.syllabus}: {syllabus?.title || text.unnamedSyllabus}</div>
                 <div className="course-actions">
-                  <button onClick={() => onRunCommand(`lesson start ${course.id}`)}>{text.learn}</button>
+                  <button onClick={() => onRunCommand(`lesson next ${course.id}`)}>{text.learn}</button>
                   <button onClick={() => onRunCommand(`quiz start ${course.id}`)}>{text.practice}</button>
                 </div>
                 <ul className="knowledge-tree">

@@ -208,6 +208,8 @@ export default function App() {
       'course create ',
       'lesson start',
       'lesson start ',
+      'lesson next',
+      'lesson next ',
       'quiz start',
       'quiz start ',
       'exam generate',
@@ -219,6 +221,7 @@ export default function App() {
       `course enter ${course.id}`,
       `course use ${course.id}`,
       `lesson start ${course.id}`,
+      `lesson next ${course.id}`,
       `quiz start ${course.id}`,
       `exam generate ${course.id}`
     ]);

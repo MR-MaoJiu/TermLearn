@@ -82,9 +82,12 @@ export async function runCommand(input: string, context: CommandContext) {
     return;
   }
 
-  if (root === 'lesson' && sub === 'start') {
+  if (root === 'lesson' && (sub === 'start' || sub === 'next' || sub === 'continue')) {
     const { courseId, userRequest } = parseCourseScopedArgs(rest, context);
-    await generateLesson(courseId, userRequest, context);
+    const request = sub === 'start' || !isSequentialLessonSupported(courseId, context)
+      ? userRequest
+      : buildSequentialLessonRequest(courseId, userRequest, context);
+    await generateLesson(courseId, request, context, sub !== 'start');
     return;
   }
 
@@ -290,7 +293,7 @@ async function generateCourse(syllabusId: string | undefined, context: CommandCo
   context.append('output', formatCourse(course, context.data.layout.language));
 }
 
-async function generateLesson(courseId: string | undefined, userLessonRequest: string, context: CommandContext) {
+async function generateLesson(courseId: string | undefined, userLessonRequest: string, context: CommandContext, useSequential = false) {
   const text = getMessages(context.data.layout.language);
   const course = findCourse(courseId, context);
   if (!course) {
@@ -319,13 +322,18 @@ async function generateLesson(courseId: string | undefined, userLessonRequest: s
   }
 
   const lesson = asGeneratedLesson(response.json, course.id, context.data.layout.language);
+  const nextRuntime = useSequential ? bumpLessonProgress(context.runtime, course.id) : context.runtime;
   await context.setData({
     ...context.data,
     lessons: [lesson, ...context.data.lessons]
   });
-  context.setRuntime({ ...context.runtime, activeCourseId: course.id });
+  context.setRuntime({ ...nextRuntime, activeCourseId: course.id });
   context.append('success', text.lessonGenerated(lesson.title));
   context.append('output', formatLesson(lesson, context.data.layout.language));
+  if (useSequential) {
+    const step = getLessonProgress(context.runtime, course.id);
+    context.append('info', text.lessonSequentialStep(course.title, course.id, step));
+  }
 }
 
 async function generateQuiz(courseId: string | undefined, userQuizRequest: string, context: CommandContext) {
@@ -888,6 +896,76 @@ function parseCourseScopedArgs(args: string[], context: CommandContext) {
   return {
     courseId: undefined,
     userRequest: args.join(' ').trim()
+  };
+}
+
+function isSequentialLessonSupported(courseId: string | undefined, context: CommandContext) {
+  const course = findCourse(courseId, context);
+  if (!course) {
+    return false;
+  }
+  return getSequentialLessonCandidates(course).length > 0;
+}
+
+function buildSequentialLessonRequest(courseId: string | undefined, userLessonRequest: string, context: CommandContext) {
+  const course = findCourse(courseId, context);
+  if (!course) {
+    return userLessonRequest;
+  }
+
+  const candidates = getSequentialLessonCandidates(course);
+  if (!candidates.length) {
+    const defaultPrefix = context.data.layout.language === 'zh'
+      ? '继续课程的下一节。请保持课程连贯性，给出本节目标、讲解、示例与练习。'
+      : 'Continue with the next lesson segment. Keep it coherent and provide objective, explanation, examples, and exercises.';
+    return userLessonRequest ? `${userLessonRequest}\n${defaultPrefix}` : defaultPrefix;
+  }
+
+  const progress = getLessonProgress(context.runtime, course.id);
+  if (progress >= candidates.length) {
+    const advancedPrefix = context.data.layout.language === 'zh'
+      ? '课程知识点已覆盖完毕，请基于前面所有内容生成综合应用、典型题和迁移应用题，避免纯复述。'
+      : 'Knowledge points are covered. Continue with integrated applications and transfer questions, avoiding mere repetition.';
+    return userLessonRequest ? `${userLessonRequest}\n${advancedPrefix}` : advancedPrefix;
+  }
+
+  const topic = candidates[progress];
+  const progressHint = context.data.layout.language === 'zh'
+    ? `当前学习到第 ${progress + 1} 节，主题："${topic}"。基于该主题展开一节完整学习内容（目标、解释、例题、练习），请尽量避免重复上一节。`
+    : `Now at lesson ${progress + 1}, topic: "${topic}". Generate a complete lesson for this topic with objective, explanation, examples, and exercises; avoid repeating the previous lesson.`;
+  return [userLessonRequest ? `${userLessonRequest}` : '', progressHint].filter(Boolean).join('\n');
+}
+
+function getSequentialLessonCandidates(course: NonNullable<ReturnType<typeof findCourse>>) {
+  if (!Array.isArray(course.knowledgeTree)) {
+    return [];
+  }
+
+  const candidates = course.knowledgeTree.flatMap((node) => {
+    const first = node.title?.trim?.();
+    const children = Array.isArray(node.children) ? node.children.map((item) => item.trim()).filter(Boolean) : [];
+    return first ? [first, ...children] : children;
+  });
+
+  return candidates.filter(Boolean);
+}
+
+function getLessonProgress(runtime: RuntimeState, courseId: string) {
+  const raw = runtime.lessonProgress?.[courseId];
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return Math.max(0, raw);
+  }
+  return 0;
+}
+
+function bumpLessonProgress(runtime: RuntimeState, courseId: string) {
+  const progress = getLessonProgress(runtime, courseId);
+  return {
+    ...runtime,
+    lessonProgress: {
+      ...(runtime.lessonProgress ?? {}),
+      [courseId]: progress + 1
+    }
   };
 }
 

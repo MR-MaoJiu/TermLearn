@@ -135,4 +135,5 @@ export interface RuntimeState {
   explainMode?: {
     attemptId: string;
   };
+  lessonProgress?: Record<string, number>;
 }

@@ -468,21 +468,23 @@ textarea:focus {
 }
 
 .statusbar {
-  display: grid;
-  grid-template-columns: 1fr 0.8fr 1.2fr 1fr 1.5fr 1.1fr;
+  display: flex;
+  align-items: stretch;
   gap: 1px;
   border-top: 1px solid var(--line);
   background: #090b0c;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 1px;
 }
 
 .statusbar > span {
-  min-width: 0;
+  flex: 0 0 auto;
   padding: 12px 14px;
   border-right: 1px solid var(--line);
   color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   font-size: 12px;
 }
 
